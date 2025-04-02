@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classification d'Images</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+        #imagePreview { max-width: 300px; margin-top: 10px; display: none; }
+        #result { font-size: 20px; font-weight: bold; margin-top: 10px; }
+        .container { max-width: 500px; margin: auto; padding: 20px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+    </style>
+</head>
+<body> 
+    <div class="container">
+        <h1>Classifier une Image</h1>
+        <input type="file" id="fileInput" accept="image/*">
+        <br>
+        <img id="imagePreview">
+        <br>
+        <button onclick="classifyImage()">Classifier</button>
+        <p id="result"></p>
+    </div>
+
+    <script>
+        let model;
+
+        async function loadModel() {
+            model = await tf.loadLayersModel('model.json');
+            console.log("Modèle chargé !");
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(event) {
+            let file = event.target.files[0];
+            if (file) {
+                let reader = new FileReader();
+                reader.onload = function(e) {
+                    let img = document.getElementById('imagePreview');
+                    img.src = e.target.result;
+                    img.style.display = "block";
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        async function classifyImage() {
+            if (!model) {
+                document.getElementById("result").innerText = "Le modèle n'est pas encore chargé...";
+                return;
+            }
+
+            let img = document.getElementById("imagePreview");
+            let tensor = tf.browser.fromPixels(img).resizeNearestNeighbor([224, 224]).toFloat().expandDims();
+            let predictions = await model.predict(tensor).data();
+
+            let categories = ["A", "B", "C", "Absence"];
+            let maxIndex = predictions.indexOf(Math.max(...predictions));
+            document.getElementById("result").innerText = "Catégorie : " + categories[maxIndex];
+        }
+
+        loadModel();
+    </script>
+</body>
+</html>
